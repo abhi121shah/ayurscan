@@ -1,4 +1,4 @@
-# AyurScan 🌿📷
+# AyurSadhna 🌿📷
 Ayurvedic food scanner — powered by Google Gemini (FREE)
 
 ## Setup
