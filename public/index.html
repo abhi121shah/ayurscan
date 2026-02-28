@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Āyurveda Food Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Yeseva+One&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f5f0e8;
+  --surface: #ede6d6;
+  --card: #faf7f2;
+  --border: #d4c9b0;
+  --accent: #8b4513;
+  --accent2: #2d6a2d;
+  --accent3: #7a4a7a;
+  --text: #2a1f12;
+  --muted: #8a7560;
+  --danger: #a83220;
+  --good: #2d6a2d;
+  --warn: #b8750a;
+  --shadow: rgba(42,31,18,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Lora', Georgia, serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(139,69,19,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(45,106,45,0.07) 0%, transparent 60%);
+}
+
+/* Decorative border pattern */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--accent) 0px, var(--accent) 20px, var(--accent2) 20px, var(--accent2) 40px, var(--accent3) 40px, var(--accent3) 60px, var(--warn) 60px, var(--warn) 80px);
+  z-index: 100;
+}
+
+.header {
+  text-align: center;
+  padding: 3.5rem 1.5rem 2.5rem;
+  position: relative;
+}
+
+.om-symbol {
+  font-size: 3.5rem;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 0.8rem;
+  animation: float 5s ease-in-out infinite;
+  line-height: 1;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+h1 {
+  font-family: 'Yeseva One', serif;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+.tagline {
+  font-style: italic;
+  color: var(--muted);
+  margin-top: 0.6rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem auto;
+  max-width: 300px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+.divider-sym { color: var(--accent); font-size: 1.2rem; }
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1.5rem 5rem;
+}
+
+/* Upload Zone */
+.upload-zone {
+  background: var(--card);
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  box-shadow: 0 2px 20px var(--shadow);
+}
+.upload-zone:hover, .upload-zone.active {
+  border-color: var(--accent);
+  background: rgba(139,69,19,0.03);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--shadow);
+}
+.upload-zone input {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon-wrap {
+  width: 80px; height: 80px;
+  background: var(--surface);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.2rem;
+  font-size: 2.2rem;
+  border: 2px solid var(--border);
+  transition: all 0.3s;
+}
+.upload-zone:hover .upload-icon-wrap {
+  background: rgba(139,69,19,0.1);
+  border-color: var(--accent);
+}
+.upload-title {
+  font-family: 'Yeseva One', serif;
+  font-size: 1.3rem;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+.upload-sub { color: var(--muted); font-style: italic; font-size: 0.9rem; }
+
+/* Buttons */
+.btn-row {
+  display: flex; gap: 1rem; margin-top: 1rem; justify-content: center;
+}
+.btn-scan { max-width: 320px; }
+.btn {
+  flex: 1;
+  padding: 0.85rem 1.5rem;
+  border: 2px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-scan {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+.btn-scan:hover { background: #6b3410; border-color: #6b3410; color: #fff; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+/* Preview */
+.preview-section { margin-top: 1.5rem; display: none; }
+.preview-section.show { display: block; }
+.preview-frame {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px var(--shadow);
+}
+.preview-frame img {
+  width: 100%;
+  max-height: 380px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Scanning overlay */
+.scan-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(245,240,232,0.75);
+  backdrop-filter: blur(2px);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+}
+.scan-overlay.active { display: flex; }
+.scan-line {
+  position: absolute;
+  left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 40%, var(--accent2) 60%, transparent 100%);
+  animation: scanMove 2.5s ease-in-out infinite;
+  box-shadow: 0 0 15px rgba(139,69,19,0.5);
+}
+@keyframes scanMove {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+.scan-spinner {
+  width: 48px; height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  z-index: 1;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.scan-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  z-index: 1;
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* Error */
+.error-msg {
+  background: rgba(168,50,32,0.08);
+  border: 1px solid var(--danger);
+  border-left: 4px solid var(--danger);
+  padding: 1rem 1.2rem;
+  border-radius: 4px;
+  color: var(--danger);
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  font-family: 'DM Mono', monospace;
+}
+
+/* Result Card */
+.result-card {
+  margin-top: 2rem;
+  background: var(--card);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 30px var(--shadow);
+  border: 1px solid var(--border);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes popIn {
+  from { transform: scale(0.96) translateY(10px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.result-top {
+  padding: 1.5rem 2rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.food-name-display {
+  font-family: 'Yeseva One', serif;
+  font-size: 1.8rem;
+  color: var(--accent);
+  line-height: 1.1;
+}
+.verdict-reason {
+  font-style: italic;
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin-top: 0.3rem;
+}
+
+.verdict-pill {
+  padding: 0.5rem 1.2rem;
+  border-radius: 100px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pill-good { background: #e8f5e8; color: var(--good); border: 1.5px solid var(--good); }
+.pill-caution { background: #fef3e2; color: var(--warn); border: 1.5px solid var(--warn); }
+.pill-avoid { background: #fdf0ee; color: var(--danger); border: 1.5px solid var(--danger); }
+
+.result-body { padding: 1.5rem 2rem; }
+
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.section-block { margin-bottom: 1.8rem; }
+
+/* Dosha grid */
+.dosha-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+}
+.dosha-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.8rem;
+  text-align: center;
+}
+.dosha-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+.dosha-val {
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+.d-up { color: var(--danger); }
+.d-down { color: var(--good); }
+.d-neutral { color: var(--muted); }
+.dosha-word {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+/* Properties grid */
+.props-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.8rem;
+}
+@media(min-width:500px) { .props-grid { grid-template-columns: repeat(4,1fr); } }
+.prop-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.8rem;
+  text-align: center;
+}
+.prop-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+}
+.prop-val { font-size: 0.88rem; color: var(--text); font-style: italic; }
+
+/* Concerns list */
+.concerns-list { list-style: none; }
+.concern-item {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.concern-item:last-child { border-bottom: none; }
+.c-icon {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+.c-bad { background: rgba(168,50,32,0.1); color: var(--danger); border: 1px solid rgba(168,50,32,0.3); }
+.c-good { background: rgba(45,106,45,0.1); color: var(--good); border: 1px solid rgba(45,106,45,0.3); }
+.c-neutral { background: rgba(184,117,10,0.1); color: var(--warn); border: 1px solid rgba(184,117,10,0.3); }
+.c-item-name { font-weight: 500; font-size: 0.95rem; }
+.c-item-name.bad { color: var(--danger); }
+.c-item-name.good { color: var(--good); }
+.c-item-name.neutral { color: var(--warn); }
+.c-item-reason { font-size: 0.88rem; color: var(--muted); font-style: italic; line-height: 1.5; margin-top: 0.15rem; }
+
+/* Recommendation */
+.rec-box {
+  background: linear-gradient(135deg, rgba(45,106,45,0.06), rgba(139,69,19,0.06));
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent2);
+  border-radius: 4px;
+  padding: 1.1rem 1.3rem;
+  font-style: italic;
+  line-height: 1.8;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+/* Tags */
+.tag-wrap { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.tag {
+  padding: 0.3rem 0.8rem;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-family: 'DM Mono', monospace;
+}
+.tag-good { background: #e8f5e8; color: var(--good); border: 1px solid rgba(45,106,45,0.3); }
+.tag-avoid { background: #fdf0ee; color: var(--danger); border: 1px solid rgba(168,50,32,0.3); }
+
+@media(max-width:480px) {
+  .result-top { flex-direction: column; }
+  .dosha-grid { grid-template-columns: repeat(3,1fr); }
+  .btn-row { flex-direction: column; }
+  .result-body { padding: 1.2rem; }
+  .result-top { padding: 1.2rem; }
+}
+
+.footer-text {
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.85rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="om-symbol">ॐ</span>
+  <h1>Āyurveda Scanner</h1>
+  <p class="tagline">Ancient wisdom for modern food</p>
+  <div class="divider"><span class="divider-sym">✿</span></div>
+</div>
+
+<div class="container">
+
+  <!-- Upload -->
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleFile(this.files[0])"/>
+    <div class="upload-icon-wrap">📸</div>
+    <div class="upload-title">Tap to Capture or Drop Food Photo</div>
+    <div class="upload-sub">Click here to open camera or upload an image</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-scan" id="scanBtn" disabled onclick="analyzeFood()">✦ Scan Ayurvedically</button>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-section" id="previewSection">
+    <div class="preview-frame">
+      <img id="previewImg" src="" alt="Food preview"/>
+      <div class="scan-overlay" id="scanOverlay">
+        <div class="scan-line"></div>
+        <div class="scan-spinner"></div>
+        <div class="scan-label">Consulting Ancient Texts...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="errorContainer"></div>
+  <div id="resultContainer"></div>
+
+  <p class="footer-text">✿ Based on classical Ayurvedic principles (Charaka Samhita & Ashtanga Hridayam) · For educational purposes ✿</p>
+</div>
+
+<script>
+let imageBase64 = null;
+let imageMime = null;
+
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('active'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('active'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('active');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) handleFile(f);
+});
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const data = e.target.result;
+    imageMime = file.type || 'image/jpeg';
+    imageBase64 = data.split(',')[1];
+    document.getElementById('previewImg').src = data;
+    document.getElementById('previewSection').classList.add('show');
+    document.getElementById('scanBtn').disabled = false;
+    document.getElementById('resultContainer').innerHTML = '';
+    document.getElementById('errorContainer').innerHTML = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzeFood() {
+  if (!imageBase64) return;
+
+  document.getElementById('scanOverlay').classList.add('active');
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('resultContainer').innerHTML = '';
+  document.getElementById('errorContainer').innerHTML = '';
+
+  const prompt = `You are an expert Ayurvedic practitioner with deep knowledge of Charaka Samhita, Sushruta Samhita, and Ashtanga Hridayam.
+
+Analyze the food in this image and return ONLY a valid JSON object (no markdown, no preamble) in this exact format:
+{
+  "foodName": "Name of the food/dish",
+  "overallVerdict": "GOOD" or "CAUTION" or "AVOID",
+  "verdictReason": "One sentence summary of the verdict",
+  "doshaEffect": {
+    "vata": "INCREASES" or "DECREASES" or "NEUTRAL",
+    "pitta": "INCREASES" or "DECREASES" or "NEUTRAL",
+    "kapha": "INCREASES" or "DECREASES" or "NEUTRAL"
+  },
+  "ayurvedicProperties": {
+    "rasa": "primary taste(s)",
+    "virya": "heating or cooling",
+    "vipaka": "sweet, sour, or pungent",
+    "bestTime": "best time to consume"
+  },
+  "concerns": [
+    { "type": "BAD", "item": "ingredient/property", "reason": "why it's harmful per Ayurveda" },
+    { "type": "GOOD", "item": "ingredient/property", "reason": "why it's beneficial per Ayurveda" }
+  ],
+  "recommendation": "2-3 sentence Ayurvedic advice about this food",
+  "suitableFor": ["dosha or condition that benefits"],
+  "avoidIf": ["dosha or condition that should avoid"]
+}
+
+Be accurate per classical Ayurvedic texts. If image is not food, set foodName to "Not a food item", verdict to "CAUTION".`;
+
+  try {
+    const res = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64,
+        imageMime,
+        prompt
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    let text = data.text || '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Could not parse response. Please try again.');
+    renderResult(JSON.parse(jsonMatch[0]));
+
+  } catch(err) {
+    document.getElementById('errorContainer').innerHTML =
+      `<div class="error-msg">⚠ ${err.message}</div>`;
+  } finally {
+    document.getElementById('scanOverlay').classList.remove('active');
+    document.getElementById('scanBtn').disabled = false;
+  }
+}
+
+function arrow(effect) {
+  if (effect === 'INCREASES') return { sym: '↑', cls: 'd-up', word: 'Increases' };
+  if (effect === 'DECREASES') return { sym: '↓', cls: 'd-down', word: 'Decreases' };
+  return { sym: '—', cls: 'd-neutral', word: 'Neutral' };
+}
+
+function renderResult(r) {
+  const vp = r.overallVerdict;
+  const pillCls = vp==='GOOD'?'pill-good':vp==='AVOID'?'pill-avoid':'pill-caution';
+  const pillLabel = vp==='GOOD'?'✓ Beneficial':vp==='AVOID'?'✗ Avoid':'⚠ Use Caution';
+
+  const de = r.doshaEffect || {};
+  const vata = arrow(de.vata), pitta = arrow(de.pitta), kapha = arrow(de.kapha);
+
+  const ap = r.ayurvedicProperties || {};
+
+  const concernsHTML = (r.concerns||[]).map(c => {
+    const isBad = c.type==='BAD', isGood = c.type==='GOOD';
+    const iconCls = isBad?'c-bad':isGood?'c-good':'c-neutral';
+    const iconSym = isBad?'✗':isGood?'✓':'◆';
+    const nameCls = isBad?'bad':isGood?'good':'neutral';
+    return `<li class="concern-item">
+      <div class="c-icon ${iconCls}">${iconSym}</div>
+      <div>
+        <div class="c-item-name ${nameCls}">${c.item}</div>
+        <div class="c-item-reason">${c.reason}</div>
+      </div>
+    </li>`;
+  }).join('');
+
+  const suitTags = (r.suitableFor||[]).map(s=>`<span class="tag tag-good">${s}</span>`).join('');
+  const avoidTags = (r.avoidIf||[]).map(s=>`<span class="tag tag-avoid">${s}</span>`).join('');
+
+  document.getElementById('resultContainer').innerHTML = `
+  <div class="result-card">
+    <div class="result-top">
+      <div>
+        <div class="food-name-display">${r.foodName}</div>
+        <div class="verdict-reason">${r.verdictReason||''}</div>
+      </div>
+      <div class="verdict-pill ${pillCls}">${pillLabel}</div>
+    </div>
+
+    <div class="result-body">
+
+      <div class="section-block">
+        <div class="section-label">Dosha Effect</div>
+        <div class="dosha-grid">
+          <div class="dosha-box">
+            <div class="dosha-name">Vāta</div>
+            <div class="dosha-val ${vata.cls}">${vata.sym}</div>
+            <div class="dosha-word">${vata.word}</div>
+          </div>
+          <div class="dosha-box">
+            <div class="dosha-name">Pitta</div>
+            <div class="dosha-val ${pitta.cls}">${pitta.sym}</div>
+            <div class="dosha-word">${pitta.word}</div>
+          </div>
+          <div class="dosha-box">
+            <div class="dosha-name">Kapha</div>
+            <div class="dosha-val ${kapha.cls}">${kapha.sym}</div>
+            <div class="dosha-word">${kapha.word}</div>
+          </div>
+        </div>
+      </div>
+
+      ${ap.rasa ? `
+      <div class="section-block">
+        <div class="section-label">Ayurvedic Properties</div>
+        <div class="props-grid">
+          <div class="prop-box"><div class="prop-label">Rasa (Taste)</div><div class="prop-val">${ap.rasa}</div></div>
+          <div class="prop-box"><div class="prop-label">Vīrya (Potency)</div><div class="prop-val">${ap.virya||'—'}</div></div>
+          <div class="prop-box"><div class="prop-label">Vipāka</div><div class="prop-val">${ap.vipaka||'—'}</div></div>
+          <div class="prop-box"><div class="prop-label">Best Time</div><div class="prop-val">${ap.bestTime||'—'}</div></div>
+        </div>
+      </div>` : ''}
+
+      ${concernsHTML ? `
+      <div class="section-block">
+        <div class="section-label">What Ayurveda Says</div>
+        <ul class="concerns-list">${concernsHTML}</ul>
+      </div>` : ''}
+
+      <div class="section-block">
+        <div class="section-label">Vedic Recommendation</div>
+        <div class="rec-box">${r.recommendation||''}</div>
+      </div>
+
+      ${suitTags ? `
+      <div class="section-block">
+        <div class="section-label">Suitable For</div>
+        <div class="tag-wrap">${suitTags}</div>
+      </div>` : ''}
+
+      ${avoidTags ? `
+      <div class="section-block">
+        <div class="section-label">Avoid If</div>
+        <div class="tag-wrap">${avoidTags}</div>
+      </div>` : ''}
+
+    </div>
+  </div>`;
+}
+</script>
+</body>
+</html>
